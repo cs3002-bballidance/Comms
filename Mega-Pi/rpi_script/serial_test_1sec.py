@@ -10,7 +10,7 @@ ACK_PKT = bytes.fromhex("DDCC")
 ERR_PKT = bytes.fromhex("DDFD")
 
 #instantiate serial
-ser = serial.Serial('/dev/ttyACM0',9600)
+ser = serial.Serial('COM3',9600)
 ser.flushInput()
 #ser.open()
 
@@ -25,13 +25,17 @@ with open('mega_data.csv', 'w') as csvfile:
     hasReplied = False
     while(not hasReplied):
         #1. send a handshake
+        print("Debug: Sending handshake")
         ser.write(HANDSHAKE_PKT)
         #2. wait for input then check
+        print("Debug: Waiting for Acknowledgement")
         time.sleep(1)
         bytesToRead = ser.inWaiting()
         response = ser.read(bytesToRead)
         #3. send an ACK if right
         if response == ACK_PKT:
+            print("Debug: Acknowledgement received")
+            print()
             hasReplied = True
             ser.write(ACK_PKT)
         else:
@@ -43,8 +47,9 @@ with open('mega_data.csv', 'w') as csvfile:
     #wait for data
     while (endTime - startTime) < 1:
         bytesToRead = ser.inWaiting()
-        if (bytesToRead == 14) : #wait until the entire packet arrives
+        if (bytesToRead == 25) : #wait until the entire packet arrives
             data = bytearray(ser.read(bytesToRead))
+            
             #print(str(rawdata))
             
             #checksum! -> send error if wrong, send ack
@@ -53,16 +58,16 @@ with open('mega_data.csv', 'w') as csvfile:
             data_array = numpy.asarray(data)
             print(str(data_array))
             writer.writerow({'acc1x': data_array[3],
-                             'acc1y': data_array[4],
-                             'acc1z': data_array[5],
-                             'acc2x': data_array[6],
-                             'acc2y': data_array[7],
-                             'acc2z': data_array[8],
-                             'acc3x': data_array[9],
-                             'acc3y': data_array[10],
-                             'acc3z': data_array[11],
-                             'curr':  data_array[12],
-                             'volt':  data_array[13]
+                             'acc1y': data_array[5],
+                             'acc1z': data_array[7],
+                             'acc2x': data_array[9],
+                             'acc2y': data_array[11],
+                             'acc2z': data_array[13],
+                             'acc3x': data_array[15],
+                             'acc3y': data_array[17],
+                             'acc3z': data_array[19],
+                             'curr':  data_array[21],
+                             'volt':  data_array[23]
                              })
         endTime = time.time()
 #All done

@@ -83,8 +83,10 @@ void setup() {
 
   //setup serial
   Serial.begin(9600);
-
+  Serial.println("Starting");
+  
   // initialize device
+  Serial.println("Initializing sensors");
   setSensors(ACC1, SAMPLE_RATE, DLPF_MODE);
   setSensors(ACC2, SAMPLE_RATE, DLPF_MODE);
   setSensors(GYRO, SAMPLE_RATE, DLPF_MODE);
@@ -101,7 +103,6 @@ void setup() {
     isStarted = startComms();
   }while(!isStarted); 
   
-
   //create semaphores
   xSemaphoreProducerA1 = xSemaphoreCreateBinary();
   xSemaphoreProducerA2 = xSemaphoreCreateBinary();
@@ -231,20 +232,20 @@ static void A1Task(void* pvParameters)
         //val1
 //        buffer[in] = val;
         buffer[in] = ax-avgAcc1X;
-        //Serial.print("in: ");
-        //Serial.println(buffer[in]);
+//        Serial.print("in(acc1x): ");
+//        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val2
 //        buffer[in] = val2;
         buffer[in] = ay-avgAcc1Y;
-        //Serial.print("in: ");
-        //Serial.println(buffer[in]);
+//        Serial.print("in(acc1y): ");
+//        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val3
 //        buffer[in] = val3;
         buffer[in] = az-avgAcc1Z;
-        //Serial.print("in: ");
-        //Serial.println(buffer[in]);
+//        Serial.print("in(acc1z): ");
+//        Serial.println(buffer[in]);
         in =(in+1) % N;
         itemsInBuffer += 3;
         xSemaphoreGive(xSemaphoreBuffer); //V(mutex);
@@ -273,20 +274,20 @@ static void A2Task(void* pvParameters)
         //val1
 //        buffer[in] = val;
         buffer[in] = ax-avgAcc2X;
-        //Serial.print("in: ");
-        //Serial.println(buffer[in]);
+//        Serial.print("in(acc2x): ");
+//        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val2
 //        buffer[in] = val2;
         buffer[in] = ay-avgAcc2Y;
-        //Serial.print("in: ");
-        //Serial.println(buffer[in]);
+//        Serial.print("in(acc2y): ");
+//        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val3
 //        buffer[in] = val3;
         buffer[in] = az-avgAcc2Z;
-        //Serial.print("in: ");
-        //Serial.println(buffer[in]);
+//        Serial.print("in(acc2z): ");
+//        Serial.println(buffer[in]);
         in =(in+1) % N;
         itemsInBuffer += 3;
         xSemaphoreGive(xSemaphoreBuffer); //V(mutex);
@@ -315,20 +316,20 @@ static void A3Task(void* pvParameters)
         //val1
 //        buffer[in] = val;
         buffer[in] = gx;
-        //Serial.print("in: ");
-        //Serial.println(buffer[in]);
+//        Serial.print("in(gyrox): ");
+//        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val2
 //        buffer[in] = val2;
         buffer[in] = gy;
-        //Serial.print("in: ");
-        //Serial.println(buffer[in]);
+//        Serial.print("in(gyroy): ");
+//        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val3
 //        buffer[in] = val3;
         buffer[in] = gz;
-        //Serial.print("in: ");
-        //Serial.println(buffer[in]);
+//        Serial.print("in(gyroz): ");
+//        Serial.println(buffer[in]);
         in =(in+1) % N;
         itemsInBuffer += 3;
         xSemaphoreGive(xSemaphoreBuffer); //V(mutex);
@@ -384,14 +385,14 @@ static void PowTask(void* pvParameters)
         //val1
 //        buffer[in] = val;
         buffer[in] = (int)(ina169AvgVal * 100);
-        //Serial.print("in: ");
-        //Serial.println(buffer[in]);
+//        Serial.print("in(A): ");
+//        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val2
 //        buffer[in] = val2;
         buffer[in] = (int)(voltAvgVal * 10);
-        //Serial.print("in: ");
-        //Serial.println(buffer[in]);
+//        Serial.print("in(V): ");
+//        Serial.println(buffer[in]);
         in =(in+1) % N;
         itemsInBuffer += 2;
         xSemaphoreGive(xSemaphoreBuffer); //V(mutex);
@@ -418,7 +419,7 @@ static void CommTask(void* pvParameters)
         for(i=0; i<N; i++){ //unload all 11 vars
           int val = buffer[out];
           out = (out+1) % N;
-          Serial.write(val);
+          Serial.write(lowByte(val)); Serial.write(highByte(val));
           //Serial.print("out:");
           //Serial.println(val);
         }
