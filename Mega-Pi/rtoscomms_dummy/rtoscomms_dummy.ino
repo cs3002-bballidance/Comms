@@ -20,6 +20,16 @@ int buffer[N];
 int in, out;
 int itemsInBuffer = 0;
 
+// pwr measurement variables
+#define VOLT_REF 5
+#define NUM_SAMPLES 10
+
+const int INA169_OUT = A0;    // Input pin for measuring Vout
+const int VOLT_PIN = A1;      // Input pin for measuring Vin
+const float RS = 0.09;        // Shunt resistor value (in ohms, calibrated)
+const int RL = 10;            // Load resistor value (in ohms)
+
+// ============== //
 SemaphoreHandle_t xSemaphoreProducerA1 = NULL;
 SemaphoreHandle_t xSemaphoreProducerA2 = NULL;
 SemaphoreHandle_t xSemaphoreProducerA3 = NULL;
@@ -30,6 +40,9 @@ void setup() {
   //setup serial
   Serial.begin(9600);
 
+  pinMode(VOLT_PIN,INPUT);
+  pinMode(INA169_OUT,INPUT);
+  
   //start comms
   bool isStarted;
   do{
@@ -170,6 +183,7 @@ static void A3Task(void* pvParameters)
   }
 }
 
+// power measurement task
 static void PowTask(void* pvParameters)
 {
   while(1)
@@ -180,13 +194,46 @@ static void PowTask(void* pvParameters)
       if((xSemaphoreTake(xSemaphoreProducerP, portMAX_DELAY) == pdTRUE) && (xSemaphoreTake(xSemaphoreBuffer, 0) == pdTRUE)){
         int val =  0xA40A;
         int val2 = 0xA40B;
+
+        int sumCount = 0;
+        int voltSumVal;     // Variable to store value from analog read
+        int ina169SumVal;   // Variable to store value from analog read
+        
+        float voltAvgVal;
+        float ina169AvgVal;
+        float current;     // Calculated current value
+        float voltage;     // Calculated voltage value
+
+        bool continueSampling = true;
+        long currMillis;
+        long startMillis = millis();
+
+        while(continueSampling){
+          currMillis = millis();
+          if ((currMillis - startMillis) >= 10){
+            ina169SumVal += analogRead(INA169_OUT);
+            voltSumVal += analogRead(VOLT_PIN);
+            sumCount++;
+            if (sumCount == NUM_SAMPLES){
+              continueSampling = false;
+            }
+            startMillis = millis();
+          }
+        }
+
+        // Remap the ADC value into a voltage number (5V reference)
+        ina169AvgVal = (((float)ina169SumVal / NUM_SAMPLES) * VOLT_REF) / 1023.0;
+        voltAvgVal = (((float)voltSumVal / NUM_SAMPLES) * VOLT_REF) / 1023.0;
+        
         //val1
-        buffer[in] = val;
+//        buffer[in] = val;
+        buffer[in] = (int)(ina169AvgVal * 100);
         //Serial.print("in: ");
         //Serial.println(buffer[in]);
         in =(in+1) % N;
         //val2
-        buffer[in] = val2;
+//        buffer[in] = val2;
+        buffer[in] = (int)(voltAvgVal * 10);
         //Serial.print("in: ");
         //Serial.println(buffer[in]);
         in =(in+1) % N;
@@ -220,7 +267,8 @@ static void CommTask(void* pvParameters)
           //Serial.println(val);
         }
         itemsInBuffer = 0;
-        vTaskDelay(50); //give a delay to ensure things are sent
+        //vTaskDelay(50); //give a delay to ensure things are sent
+        vTaskDelay(1);
         xSemaphoreGive(xSemaphoreBuffer); //V(mutex);
         xSemaphoreGive((xSemaphoreProducerA1)); //give back binaries to restart cycle
         xSemaphoreGive((xSemaphoreProducerA2));
