@@ -1,7 +1,6 @@
 from Crypto import Random
 from Crypto.Cipher import AES
 
-from binascii import hexlify
 import base64
 import random
 import socket
@@ -36,7 +35,7 @@ class client:
                 cumulativepower = b'9999'
                 msg = b'#' + b'|'.join([action.encode(), voltage, current, power, cumulativepower]) + b'|'
                 
-                print('sending msg: ', msg)
+                print('unencrypted msg: ', msg)
                 
             #2. Encrypt readings
                 
@@ -47,7 +46,7 @@ class client:
                 iv = Random.new().read(AES.block_size)
                 cipher = AES.new(secret_key, AES.MODE_CBC, iv)
                 encodedMsg = base64.b64encode(iv + cipher.encrypt(msg))
-                print('encrypted msg: ', encodedMsg)
+                print('encrypted msg:   ', encodedMsg)
                 
             #3. Send data packet over
                 print('sending msg')
@@ -65,4 +64,4 @@ if len(sys.argv) != 3:
 ip_addr = sys.argv[1]
 port_num = int(sys.argv[2])
 
-the_client = client(ip_addr, port_num)
+my_client = client(ip_addr, port_num)
