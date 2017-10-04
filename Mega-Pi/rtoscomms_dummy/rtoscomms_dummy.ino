@@ -130,14 +130,14 @@ void setSensors(int mpuNum, int sampleRate, int dlpfMode){
   mpu.initialize();
   mpu.setRate(sampleRate);                     //set rate to 50Hz for sampling
   mpu.setDLPFMode(dlpfMode);                   //set on-board digital low-pass filter configuration  
-  mpu.setFullScaleAccelRange(3);
+  mpu.setFullScaleAccelRange(0);
   /*
    * 0 = +/- 2g
    * 1 = +/- 4g
    * 2 = +/- 8g
    * 3 = +/- 16g
   */
-  mpu.setFullScaleGyroRange(2);
+  mpu.setFullScaleGyroRange(0);
   /*
    * FS_SEL | Full Scale Range   | LSB Sensitivity
    * -------+--------------------+----------------
@@ -349,17 +349,17 @@ static void PowTask(void* pvParameters)
     if((xSemaphoreProducerP != NULL) && (xSemaphoreBuffer != NULL)){
       //P(empty); P(mutex);
       if((xSemaphoreTake(xSemaphoreProducerP, portMAX_DELAY) == pdTRUE) && (xSemaphoreTake(xSemaphoreBuffer, 0) == pdTRUE)){
-        int val =  0xA40A;
-        int val2 = 0xA40B;
+//        int val =  0xA40A;
+//        int val2 = 0xA40B;
 
         int sumCount = 0;
-        int voltSumVal;     // Variable to store value from analog read
-        int ina169SumVal;   // Variable to store value from analog read
+        int voltSumVal = 0;     // Variable to store value from analog read
+        int ina169SumVal = 0;   // Variable to store value from analog read
         
-        float voltAvgVal;
-        float ina169AvgVal;
-        float current;     // Calculated current value
-        float voltage;     // Calculated voltage value
+        float voltAvgVal = 0.0;
+        float ina169AvgVal = 0.0;
+        float current = 0.0;     // Calculated current value
+        float voltage = 0.0;     // Calculated voltage value
 
         bool continueSampling = true;
         long currMillis;
@@ -377,7 +377,7 @@ static void PowTask(void* pvParameters)
             startMillis = millis();
           }
         }
-
+        
 //        while(sumCount < NUM_SAMPLES){
 //          ina169SumVal += analogRead(INA169_OUT);
 //          voltSumVal += analogRead(VOLT_PIN);
@@ -388,16 +388,23 @@ static void PowTask(void* pvParameters)
         // Remap the ADC value into a voltage number (5V reference)
         ina169AvgVal = (((float)ina169SumVal / NUM_SAMPLES) * VOLT_REF) / 1023.0;
         voltAvgVal = (((float)voltSumVal / NUM_SAMPLES) * VOLT_REF) / 1023.0;
+
+        current = ina169AvgVal / (RS * RL);
+        voltage = voltAvgVal * 1.4706;
+//        Serial.print("A: ");
+//        Serial.println(ina169AvgVal);
+//        Serial.print("V: ");
+//        Serial.println(voltAvgVal);
         
         //val1
 //        buffer[in] = val;
-        buffer[in] = (int)(ina169AvgVal);
+        buffer[in] = (int)(current * 1000);
 //        Serial.print("in(A): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val2
 //        buffer[in] = val2;
-        buffer[in] = (int)(voltAvgVal);
+        buffer[in] = (int)(voltage*100);
 //        Serial.print("in(V): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
