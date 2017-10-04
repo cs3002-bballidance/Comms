@@ -9,7 +9,6 @@
 #endif
 
 /*** Constant Values ***/
-
 //Comms Protocol Variables
 const byte START_FLAG = 0xDD; //start of every packet
 const byte CONT_COMMS = 0xCC; //ACK flag
@@ -43,7 +42,6 @@ const int RL = 10;            // Load resistor value (in ohms)
 #define ACC2 9          // AD0 pin connect for accelerometer 2
 #define GYRO 10         // AD0 pin connect for gyro
 MPU6050 mpu; // default 0x68 i2c address on AD0 low 
-const int samplemillis = 1000/SAMPLE_RATE; // duration between each sample, 20ms = 50Hz sampling rate
 
 long currmillis = 0;
 long startmillis = 0;
@@ -224,25 +222,19 @@ static void A1Task(void* pvParameters)
     if((xSemaphoreProducerA1 != NULL) && (xSemaphoreBuffer != NULL)){
       //P(empty); P(mutex);
       if((xSemaphoreTake(xSemaphoreProducerA1, portMAX_DELAY) == pdTRUE) && (xSemaphoreTake(xSemaphoreBuffer, 0) == pdTRUE)){
-//        int val =  0xA101;
-//        int val2 = 0xA102;
-//        int val3 = 0xA103;
         mpuselect(ACC1);
         mpu.getAcceleration(&ax, &ay, &az);
-        //val1
-//        buffer[in] = val;
+
         buffer[in] = ax-avgAcc1X;
 //        Serial.print("in(acc1x): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val2
-//        buffer[in] = val2;
         buffer[in] = ay-avgAcc1Y;
 //        Serial.print("in(acc1y): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val3
-//        buffer[in] = val3;
         buffer[in] = az-avgAcc1Z;
 //        Serial.print("in(acc1z): ");
 //        Serial.println(buffer[in]);
@@ -266,25 +258,19 @@ static void A2Task(void* pvParameters)
     if((xSemaphoreProducerA2 != NULL) && (xSemaphoreBuffer != NULL)){
       //P(empty); P(mutex);
       if((xSemaphoreTake(xSemaphoreProducerA2, portMAX_DELAY) == pdTRUE) && (xSemaphoreTake(xSemaphoreBuffer, 0) == pdTRUE)){
-//        int val =  0xA204;
-//        int val2 = 0xA205;
-//        int val3 = 0xA206;
         mpuselect(ACC2);
         mpu.getAcceleration(&ax, &ay, &az);
         //val1
-//        buffer[in] = val;
         buffer[in] = ax-avgAcc2X;
 //        Serial.print("in(acc2x): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val2
-//        buffer[in] = val2;
         buffer[in] = ay-avgAcc2Y;
 //        Serial.print("in(acc2y): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val3
-//        buffer[in] = val3;
         buffer[in] = az-avgAcc2Z;
 //        Serial.print("in(acc2z): ");
 //        Serial.println(buffer[in]);
@@ -308,25 +294,19 @@ static void A3Task(void* pvParameters)
     if((xSemaphoreProducerA3 != NULL) && (xSemaphoreBuffer != NULL)){
       //P(empty); P(mutex);
       if((xSemaphoreTake(xSemaphoreProducerA3, portMAX_DELAY) == pdTRUE) && (xSemaphoreTake(xSemaphoreBuffer, 0) == pdTRUE)){
-//        int val =  0xA307;
-//        int val2 = 0xA308;
-//        int val3 = 0xA309;
         mpuselect(GYRO);
         mpu.getRotation(&gx, &gy, &gz);
         //val1
-//        buffer[in] = val;
         buffer[in] = gx;
 //        Serial.print("in(gyrox): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val2
-//        buffer[in] = val2;
         buffer[in] = gy;
 //        Serial.print("in(gyroy): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val3
-//        buffer[in] = val3;
         buffer[in] = gz;
 //        Serial.print("in(gyroz): ");
 //        Serial.println(buffer[in]);
@@ -349,9 +329,6 @@ static void PowTask(void* pvParameters)
     if((xSemaphoreProducerP != NULL) && (xSemaphoreBuffer != NULL)){
       //P(empty); P(mutex);
       if((xSemaphoreTake(xSemaphoreProducerP, portMAX_DELAY) == pdTRUE) && (xSemaphoreTake(xSemaphoreBuffer, 0) == pdTRUE)){
-//        int val =  0xA40A;
-//        int val2 = 0xA40B;
-
         int sumCount = 0;
         int voltSumVal = 0;     // Variable to store value from analog read
         int ina169SumVal = 0;   // Variable to store value from analog read
@@ -365,37 +342,15 @@ static void PowTask(void* pvParameters)
         long currMillis;
         long startMillis = millis();
 
-//        while(continueSampling){
-//          currMillis = millis();
-//          if ((currMillis - startMillis) >= 10){
-//            ina169SumVal += analogRead(INA169_OUT);
-//            voltSumVal += analogRead(VOLT_PIN);
-//            sumCount++;
-//            if (sumCount == NUM_SAMPLES){
-//              continueSampling = false;
-//            }
-//            startMillis = millis();
-//          }
-//        }
-        
-//        while(sumCount < NUM_SAMPLES){
-//          ina169SumVal += analogRead(INA169_OUT);
-//          voltSumVal += analogRead(VOLT_PIN);
-//          sumCount++;
-//          delay(10);
-//        }
         ina169SumVal += analogRead(INA169_OUT);
         voltSumVal += analogRead(VOLT_PIN);
+        
         // Remap the ADC value into a voltage number (5V reference)
         ina169AvgVal = (((float)ina169SumVal) * VOLT_REF) / 1023.0;
         voltAvgVal = (((float)voltSumVal) * VOLT_REF) / 1023.0;
 
         current = ina169AvgVal / (RS * RL);
         voltage = voltAvgVal * 1.4706;
-//        Serial.print("A: ");
-//        Serial.println(ina169AvgVal);
-//        Serial.print("V: ");
-//        Serial.println(voltAvgVal);
         
         //val1
 //        buffer[in] = val;
@@ -455,9 +410,7 @@ static void CommTask(void* pvParameters)
   }
 }
 
-
 /*** Utility Functions ***/
-
 bool startComms(){
   //wait for handshake
   byte handshake[2];
