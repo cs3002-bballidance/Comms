@@ -83,10 +83,10 @@ void setup() {
 
   //setup serial
   Serial.begin(9600);
-  Serial.println("Starting");
+//  Serial.println("Starting");
   
   // initialize device
-  Serial.println("Initializing sensors");
+//  Serial.println("Initializing sensors");
   setSensors(ACC1, SAMPLE_RATE, DLPF_MODE);
   setSensors(ACC2, SAMPLE_RATE, DLPF_MODE);
   setSensors(GYRO, SAMPLE_RATE, DLPF_MODE);
@@ -378,19 +378,26 @@ static void PowTask(void* pvParameters)
           }
         }
 
+//        while(sumCount < NUM_SAMPLES){
+//          ina169SumVal += analogRead(INA169_OUT);
+//          voltSumVal += analogRead(VOLT_PIN);
+//          sumCount++;
+//          delay(10);
+//        }
+
         // Remap the ADC value into a voltage number (5V reference)
         ina169AvgVal = (((float)ina169SumVal / NUM_SAMPLES) * VOLT_REF) / 1023.0;
         voltAvgVal = (((float)voltSumVal / NUM_SAMPLES) * VOLT_REF) / 1023.0;
         
         //val1
 //        buffer[in] = val;
-        buffer[in] = (int)(ina169AvgVal * 100);
+        buffer[in] = (int)(ina169AvgVal);
 //        Serial.print("in(A): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
         //val2
 //        buffer[in] = val2;
-        buffer[in] = (int)(voltAvgVal * 10);
+        buffer[in] = (int)(voltAvgVal);
 //        Serial.print("in(V): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
@@ -419,9 +426,11 @@ static void CommTask(void* pvParameters)
         for(i=0; i<N; i++){ //unload all 11 vars
           int val = buffer[out];
           out = (out+1) % N;
-          Serial.write(lowByte(val)); Serial.write(highByte(val));
-          //Serial.print("out:");
-          //Serial.println(val);
+          Serial.write(highByte(val));
+          Serial.write(lowByte(val)); 
+//          Serial.print("out");
+//          Serial.print(i);
+//          Serial.println(val);
         }
         itemsInBuffer = 0;
         //vTaskDelay(50); //give a delay to ensure things are sent

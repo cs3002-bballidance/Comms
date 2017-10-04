@@ -23,13 +23,17 @@ with open('mega_data.csv', 'w') as csvfile:
     hasReplied = False
     while(not hasReplied):
         #1. send a handshake
+        print("Debug: Sending handshake")
         ser.write(HANDSHAKE_PKT)
         #2. wait for input then check
         time.sleep(1)
+        print("Debug: Waiting for handshake")
         bytesToRead = ser.inWaiting()
         response = ser.read(bytesToRead)
         #3. send an ACK if right
         if response == ACK_PKT:
+            print("Debug: Handshake received")
+            print()
             hasReplied = True
             ser.write(ACK_PKT)
         else:
