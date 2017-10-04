@@ -8,39 +8,37 @@
     #include "Wire.h"
 #endif
 
+#define STACK_SIZE          100
+#define N                   11
+#define VOLT_REF            5
+#define SAMPLE_RATE         50  // 50hz sampling rate
+#define DLPF_MODE           6   // MPU6050 on-board digital low pass filter
+#define ACC1                8   // AD0 pin connect for accelerometer 1
+#define ACC2                9   // AD0 pin connect for accelerometer 2
+#define GYRO                10  // AD0 pin connect for gyro
+#define INITIAL_NUM_SAMPLE  100
+
 /*** Constant Values ***/
 //Comms Protocol Variables
-const byte START_FLAG = 0xDD; //start of every packet
-const byte CONT_COMMS = 0xCC; //ACK flag
-const byte INBD_DATA = 0x1D; //flag for Incoming data
-const byte ERR_FLAG = 0xFD; //error flag
-
+const byte START_FLAG = 0xDD;   //start of every packet
+const byte CONT_COMMS = 0xCC;   //ACK flag
+const byte INBD_DATA = 0x1D;    //flag for Incoming data
+const byte ERR_FLAG = 0xFD;     //error flag
 const byte DESCRIPTOR_HANDSHAKE[] = {0xDD, 0x1C};
 const byte DESCRIPTOR_ACK[] = {0xDD, 0xCC};
 
-//RTOS Variables
-#define STACK_SIZE 100
-#define N 11
-int buffer[N];
-int in, out;
-int itemsInBuffer = 0;
-
 // pwr measurement variables
-#define VOLT_REF 5
-#define NUM_SAMPLES 10
-
 const int INA169_OUT = A0;    // Input pin for measuring Vout
 const int VOLT_PIN = A1;      // Input pin for measuring Vin
 const float RS = 0.09;        // Shunt resistor value (in ohms, calibrated)
 const int RL = 10;            // Load resistor value (in ohms)
-// ============== //
+
+//RTOS Variables
+int buffer[N];
+int in, out;
+int itemsInBuffer = 0;
 
 // sensor variable
-#define SAMPLE_RATE 50  // 50hz sampling rate
-#define DLPF_MODE 6
-#define ACC1 8          // AD0 pin connect for accelerometer 1
-#define ACC2 9          // AD0 pin connect for accelerometer 2
-#define GYRO 10         // AD0 pin connect for gyro
 MPU6050 mpu; // default 0x68 i2c address on AD0 low 
 
 long currmillis = 0;
@@ -52,9 +50,6 @@ float avgAcc1Z = 0;
 float avgAcc2X = 0;
 float avgAcc2Y = 0;
 float avgAcc2Z = 0;
-
-const int numSample = 100;
-// ============== //
 
 SemaphoreHandle_t xSemaphoreProducerA1 = NULL;
 SemaphoreHandle_t xSemaphoreProducerA2 = NULL;
@@ -81,10 +76,8 @@ void setup() {
 
   //setup serial
   Serial.begin(9600);
-//  Serial.println("Starting");
   
   // initialize device
-//  Serial.println("Initializing sensors");
   setSensors(ACC1, SAMPLE_RATE, DLPF_MODE);
   setSensors(ACC2, SAMPLE_RATE, DLPF_MODE);
   setSensors(GYRO, SAMPLE_RATE, DLPF_MODE);
@@ -167,7 +160,7 @@ void calibrateInitial(){
   float sumAcc2Y = 0;
   float sumAcc2Z = 0;
 
-  for(int i=0; i< numSample; i++){
+  for(int i=0; i< INITIAL_NUM_SAMPLE; i++){
     mpuselect(ACC1);
     mpu.getAcceleration(&ax, &ay, &az);
     mpuselect(ACC2);
@@ -178,14 +171,13 @@ void calibrateInitial(){
     sumAcc2X += ax2;
     sumAcc2Y += ay2;
     sumAcc2Z += az2;
-//    delay(20);
   }
-  avgAcc1X = sumAcc1X / numSample;
-  avgAcc1Y = sumAcc1Y / numSample;
-  avgAcc1Z = sumAcc1Z / numSample;
-  avgAcc2X = sumAcc2X / numSample;
-  avgAcc2Y = sumAcc2Y / numSample;
-  avgAcc2Z = sumAcc2Z / numSample;
+  avgAcc1X = sumAcc1X / INITIAL_NUM_SAMPLE;
+  avgAcc1Y = sumAcc1Y / INITIAL_NUM_SAMPLE;
+  avgAcc1Z = sumAcc1Z / INITIAL_NUM_SAMPLE;
+  avgAcc2X = sumAcc2X / INITIAL_NUM_SAMPLE;
+  avgAcc2Y = sumAcc2Y / INITIAL_NUM_SAMPLE;
+  avgAcc2Z = sumAcc2Z / INITIAL_NUM_SAMPLE;
 }
 
 void mpuselect(int numMpu){
@@ -229,12 +221,12 @@ static void A1Task(void* pvParameters)
 //        Serial.print("in(acc1x): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
-        //val2
+
         buffer[in] = ay-avgAcc1Y;
 //        Serial.print("in(acc1y): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
-        //val3
+
         buffer[in] = az-avgAcc1Z;
 //        Serial.print("in(acc1z): ");
 //        Serial.println(buffer[in]);
@@ -260,17 +252,17 @@ static void A2Task(void* pvParameters)
       if((xSemaphoreTake(xSemaphoreProducerA2, portMAX_DELAY) == pdTRUE) && (xSemaphoreTake(xSemaphoreBuffer, 0) == pdTRUE)){
         mpuselect(ACC2);
         mpu.getAcceleration(&ax, &ay, &az);
-        //val1
+
         buffer[in] = ax-avgAcc2X;
 //        Serial.print("in(acc2x): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
-        //val2
+
         buffer[in] = ay-avgAcc2Y;
 //        Serial.print("in(acc2y): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
-        //val3
+
         buffer[in] = az-avgAcc2Z;
 //        Serial.print("in(acc2z): ");
 //        Serial.println(buffer[in]);
@@ -296,17 +288,17 @@ static void A3Task(void* pvParameters)
       if((xSemaphoreTake(xSemaphoreProducerA3, portMAX_DELAY) == pdTRUE) && (xSemaphoreTake(xSemaphoreBuffer, 0) == pdTRUE)){
         mpuselect(GYRO);
         mpu.getRotation(&gx, &gy, &gz);
-        //val1
+
         buffer[in] = gx;
 //        Serial.print("in(gyrox): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
-        //val2
+
         buffer[in] = gy;
 //        Serial.print("in(gyroy): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
-        //val3
+
         buffer[in] = gz;
 //        Serial.print("in(gyroz): ");
 //        Serial.println(buffer[in]);
@@ -330,36 +322,29 @@ static void PowTask(void* pvParameters)
       //P(empty); P(mutex);
       if((xSemaphoreTake(xSemaphoreProducerP, portMAX_DELAY) == pdTRUE) && (xSemaphoreTake(xSemaphoreBuffer, 0) == pdTRUE)){
         int sumCount = 0;
-        int voltSumVal = 0;     // Variable to store value from analog read
-        int ina169SumVal = 0;   // Variable to store value from analog read
+        int voltIn = 0;     // Variable to store value from analog read
+        int currIn = 0;   // Variable to store value from analog read
         
         float voltAvgVal = 0.0;
         float ina169AvgVal = 0.0;
         float current = 0.0;     // Calculated current value
         float voltage = 0.0;     // Calculated voltage value
 
-        bool continueSampling = true;
-        long currMillis;
-        long startMillis = millis();
-
-        ina169SumVal += analogRead(INA169_OUT);
-        voltSumVal += analogRead(VOLT_PIN);
+        currIn = analogRead(INA169_OUT);
+        voltIn = analogRead(VOLT_PIN);
         
         // Remap the ADC value into a voltage number (5V reference)
-        ina169AvgVal = (((float)ina169SumVal) * VOLT_REF) / 1023.0;
-        voltAvgVal = (((float)voltSumVal) * VOLT_REF) / 1023.0;
+        ina169AvgVal = (currIn * VOLT_REF) / 1023.0;
+        voltAvgVal = (voltIn * VOLT_REF) / 1023.0;
 
         current = ina169AvgVal / (RS * RL);
         voltage = voltAvgVal * 1.4706;
         
-        //val1
-//        buffer[in] = val;
         buffer[in] = (int)(current * 1000);
 //        Serial.print("in(A): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
-        //val2
-//        buffer[in] = val2;
+
         buffer[in] = (int)(voltage*100);
 //        Serial.print("in(V): ");
 //        Serial.println(buffer[in]);
@@ -396,8 +381,7 @@ static void CommTask(void* pvParameters)
 //          Serial.println(val);
         }
         itemsInBuffer = 0;
-        //vTaskDelay(50); //give a delay to ensure things are sent
-        vTaskDelay(1);
+        vTaskDelay(1); //give a delay to ensure things are sent
         xSemaphoreGive(xSemaphoreBuffer); //V(mutex);
         xSemaphoreGive((xSemaphoreProducerA1)); //give back binaries to restart cycle
         xSemaphoreGive((xSemaphoreProducerA2));
@@ -429,7 +413,6 @@ bool startComms(){
     if(Serial.available()){
       Serial.readBytes(ack, sizeof(ack));
     }
-
     return buffersAreEqual(ack, DESCRIPTOR_ACK);
     
   } else {
