@@ -10,7 +10,7 @@ ACK_PKT = bytes.fromhex("DDCC")
 ERR_PKT = bytes.fromhex("DDFD")
 
 #instantiate serial
-ser = serial.Serial('COM3',9600)
+ser = serial.Serial('COM3',57600)
 ser.flushInput()
 #ser.open()
 
@@ -25,17 +25,17 @@ with open('mega_data.csv', 'w') as csvfile:
     hasReplied = False
     while(not hasReplied):
         #1. send a handshake
-        print("Debug: Sending handshake")
+        #print("Debug: Sending handshake")
         ser.write(HANDSHAKE_PKT)
         #2. wait for input then check
-        print("Debug: Waiting for Acknowledgement")
+        #print("Debug: Waiting for Acknowledgement")
         time.sleep(1)
         bytesToRead = ser.inWaiting()
         response = ser.read(bytesToRead)
         #3. send an ACK if right
         if response == ACK_PKT:
-            print("Debug: Acknowledgement received")
-            print()
+            #print("Debug: Acknowledgement received")
+            #print()
             hasReplied = True
             ser.write(ACK_PKT)
         else:
@@ -47,7 +47,7 @@ with open('mega_data.csv', 'w') as csvfile:
     #wait for data
     while (endTime - startTime) < 1:
         bytesToRead = ser.inWaiting()
-        if (bytesToRead == 25) : #wait until the entire packet arrives
+        if (bytesToRead >= 25) : #wait until the entire packet arrives
             data = bytearray(ser.read(bytesToRead))
             
             #print(str(rawdata))

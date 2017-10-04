@@ -365,18 +365,18 @@ static void PowTask(void* pvParameters)
         long currMillis;
         long startMillis = millis();
 
-        while(continueSampling){
-          currMillis = millis();
-          if ((currMillis - startMillis) >= 10){
-            ina169SumVal += analogRead(INA169_OUT);
-            voltSumVal += analogRead(VOLT_PIN);
-            sumCount++;
-            if (sumCount == NUM_SAMPLES){
-              continueSampling = false;
-            }
-            startMillis = millis();
-          }
-        }
+//        while(continueSampling){
+//          currMillis = millis();
+//          if ((currMillis - startMillis) >= 10){
+//            ina169SumVal += analogRead(INA169_OUT);
+//            voltSumVal += analogRead(VOLT_PIN);
+//            sumCount++;
+//            if (sumCount == NUM_SAMPLES){
+//              continueSampling = false;
+//            }
+//            startMillis = millis();
+//          }
+//        }
         
 //        while(sumCount < NUM_SAMPLES){
 //          ina169SumVal += analogRead(INA169_OUT);
@@ -384,10 +384,11 @@ static void PowTask(void* pvParameters)
 //          sumCount++;
 //          delay(10);
 //        }
-
+        ina169SumVal += analogRead(INA169_OUT);
+        voltSumVal += analogRead(VOLT_PIN);
         // Remap the ADC value into a voltage number (5V reference)
-        ina169AvgVal = (((float)ina169SumVal / NUM_SAMPLES) * VOLT_REF) / 1023.0;
-        voltAvgVal = (((float)voltSumVal / NUM_SAMPLES) * VOLT_REF) / 1023.0;
+        ina169AvgVal = (((float)ina169SumVal) * VOLT_REF) / 1023.0;
+        voltAvgVal = (((float)voltSumVal) * VOLT_REF) / 1023.0;
 
         current = ina169AvgVal / (RS * RL);
         voltage = voltAvgVal * 1.4706;

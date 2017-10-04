@@ -80,10 +80,10 @@ with open('mega_data.csv', 'w') as csvfile:
                              'curr':  curr,
                              'volt':  volt
                              })
-            print('acc1: ', acc1x, acc1y, acc1z)
-            print('acc2: ', acc2x, acc2y, acc2z)
-            print('acc3: ', acc3x, acc3y, acc3z)
-            print('pow: ', curr, volt)
+            #print('acc1: ', acc1x, acc1y, acc1z)
+            #print('acc2: ', acc2x, acc2y, acc2z)
+            #print('acc3: ', acc3x, acc3y, acc3z)
+            #print('pow: ', curr, volt)
         #3. update timer
         #endTime = time.time()
         
