@@ -12,11 +12,14 @@
 #define N                   11
 #define VOLT_REF            5
 #define SAMPLE_RATE         50  // 50hz sampling rate
-#define DLPF_MODE           6   // MPU6050 on-board digital low pass filter
+#define DLPF_MODE           0   // MPU6050 on-board digital low pass filter
 #define ACC1                8   // AD0 pin connect for accelerometer 1
 #define ACC2                9   // AD0 pin connect for accelerometer 2
 #define GYRO                10  // AD0 pin connect for gyro
 #define INITIAL_NUM_SAMPLE  100
+#define ACCEL_SENSITIVITY   8192
+#define GYRO_SENSITIVITY    250
+#define GRAVITY             9.81
 
 /*** Constant Values ***/
 //Comms Protocol Variables
@@ -44,12 +47,12 @@ MPU6050 mpu; // default 0x68 i2c address on AD0 low
 long currmillis = 0;
 long startmillis = 0;
 
-float avgAcc1X = 0;
-float avgAcc1Y = 0;
-float avgAcc1Z = 0;
-float avgAcc2X = 0;
-float avgAcc2Y = 0;
-float avgAcc2Z = 0;
+int avgAcc1X = 0;
+int avgAcc1Y = 0;
+int avgAcc1Z = 0;
+int avgAcc2X = 0;
+int avgAcc2Y = 0;
+int avgAcc2Z = 0;
 
 SemaphoreHandle_t xSemaphoreProducerA1 = NULL;
 SemaphoreHandle_t xSemaphoreProducerA2 = NULL;
@@ -75,12 +78,12 @@ void setup() {
   digitalWrite(GYRO, HIGH);
 
   //setup serial
-  Serial.begin(9600);
+  Serial.begin(57600);
   
   // initialize device
-  setSensors(ACC1, SAMPLE_RATE, DLPF_MODE);
-  setSensors(ACC2, SAMPLE_RATE, DLPF_MODE);
-  setSensors(GYRO, SAMPLE_RATE, DLPF_MODE);
+  setSensors(ACC1, SAMPLE_RATE);
+  setSensors(ACC2, SAMPLE_RATE);
+  setSensors(GYRO, SAMPLE_RATE);
   
   setOffset(ACC1, -4516, 1386, 389, -67, -44, 258);   // calibrated offset for each sensors
   setOffset(ACC2, -1568, -590, 1163, -1257, -26, 15);
@@ -116,12 +119,12 @@ void setup() {
   xTaskCreate(CommTask, "C", 100, NULL, 2, NULL); 
 }
 
-void setSensors(int mpuNum, int sampleRate, int dlpfMode){
+void setSensors(int mpuNum, int sampleRate){
   mpuselect(mpuNum);
   mpu.initialize();
   mpu.setRate(sampleRate);                     //set rate to 50Hz for sampling
-  mpu.setDLPFMode(dlpfMode);                   //set on-board digital low-pass filter configuration  
-  mpu.setFullScaleAccelRange(0);
+  mpu.setDLPFMode(DLPF_MODE);                   //set on-board digital low-pass filter configuration  
+  mpu.setFullScaleAccelRange(1);
   /*
    * 0 = +/- 2g
    * 1 = +/- 4g
@@ -160,7 +163,7 @@ void calibrateInitial(){
   float sumAcc2Y = 0;
   float sumAcc2Z = 0;
 
-  for(int i=0; i< INITIAL_NUM_SAMPLE; i++){
+  for(int i = 0; i < INITIAL_NUM_SAMPLE; i++){
     mpuselect(ACC1);
     mpu.getAcceleration(&ax, &ay, &az);
     mpuselect(ACC2);
@@ -217,17 +220,17 @@ static void A1Task(void* pvParameters)
         mpuselect(ACC1);
         mpu.getAcceleration(&ax, &ay, &az);
 
-        buffer[in] = ax-avgAcc1X;
+        buffer[in] = (int)(((float)(ax-avgAcc1X)/ACCEL_SENSITIVITY)*GRAVITY);
 //        Serial.print("in(acc1x): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
 
-        buffer[in] = ay-avgAcc1Y;
+        buffer[in] = (int)(((float)(ay-avgAcc1Y)/ACCEL_SENSITIVITY)*GRAVITY);
 //        Serial.print("in(acc1y): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
 
-        buffer[in] = az-avgAcc1Z;
+        buffer[in] = (int)(((float)(az-avgAcc1Z)/ACCEL_SENSITIVITY)*GRAVITY);
 //        Serial.print("in(acc1z): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
@@ -253,17 +256,17 @@ static void A2Task(void* pvParameters)
         mpuselect(ACC2);
         mpu.getAcceleration(&ax, &ay, &az);
 
-        buffer[in] = ax-avgAcc2X;
+        buffer[in] = (int)(((float)(ax-avgAcc2X)/ACCEL_SENSITIVITY)*GRAVITY);
 //        Serial.print("in(acc2x): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
 
-        buffer[in] = ay-avgAcc2Y;
+        buffer[in] = (int)(((float)(ay-avgAcc2Y)/ACCEL_SENSITIVITY)*GRAVITY);
 //        Serial.print("in(acc2y): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
 
-        buffer[in] = az-avgAcc2Z;
+        buffer[in] = (int)(((float)(az-avgAcc2Z)/ACCEL_SENSITIVITY)*GRAVITY);
 //        Serial.print("in(acc2z): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
@@ -289,17 +292,17 @@ static void A3Task(void* pvParameters)
         mpuselect(GYRO);
         mpu.getRotation(&gx, &gy, &gz);
 
-        buffer[in] = gx;
+        buffer[in] = (int)((float)gx/GYRO_SENSITIVITY);
 //        Serial.print("in(gyrox): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
 
-        buffer[in] = gy;
+        buffer[in] = (int)((float)gy/GYRO_SENSITIVITY);
 //        Serial.print("in(gyroy): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;
 
-        buffer[in] = gz;
+        buffer[in] = (int)((float)gz/GYRO_SENSITIVITY);
 //        Serial.print("in(gyroz): ");
 //        Serial.println(buffer[in]);
         in =(in+1) % N;

@@ -11,7 +11,7 @@ ACK_PKT = bytes.fromhex("DDCC")
 ERR_PKT = bytes.fromhex("DDFD")
 
 #instantiate serial
-ser = serial.Serial('COM3',9600)
+ser = serial.Serial('COM3',57600)
 ser.flushInput()
 
 with open('mega_data.csv', 'w') as csvfile:
