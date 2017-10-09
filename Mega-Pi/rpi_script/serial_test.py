@@ -7,7 +7,7 @@ HANDSHAKE_PKT = bytes.fromhex("DD1C")
 ACK_PKT = bytes.fromhex("DDCC")
 ERR_PKT = bytes.fromhex("DDFD")
 
-ser = serial.Serial('COM3',9600)
+ser = serial.Serial('/dev/ttyAMA0',9600)
 ser.flushInput()
 #ser.open()
 

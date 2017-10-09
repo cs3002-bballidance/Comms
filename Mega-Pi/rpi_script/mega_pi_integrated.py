@@ -1,18 +1,39 @@
+import RPi.GPIO as GPIO
 import serial
 import time
 import numpy
 import csv
 import sys
 import struct
+import logging
 
 #constants
 HANDSHAKE_PKT = bytes.fromhex("DD1C")
 ACK_PKT = bytes.fromhex("DDCC")
 ERR_PKT = bytes.fromhex("DDFD")
+RESET_PIN = 17
+LOG_FILENAME = 'mega_pi.log'
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',filename=LOG_FILENAME,level=logging.INFO)
+logger.setLevel(logging.DEBUG)
+logger.info('Starting {}'.format(__file__))
+
+#instantiate GPIO
+logger.info('Initializing GPIO')
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+GPIO.setup(RESET_PIN,GPIO.OUT)
+GPIO.output(RESET_PIN,GPIO.HIGH) # pull low then back to high to reset arduino
 
 #instantiate serial
-ser = serial.Serial('COM3',57600)
-ser.flushInput()
+logger.info('Initializing serial interface')
+ser = serial.Serial('/dev/ttyAMA0',57600)
+GPIO.output(RESET_PIN,GPIO.LOW)
+ser.flushInput() # flush any existing serial buffer
+logger.info('Resetting arduino before resuming')
+time.sleep(2) # sleep for 2 second before pulling the pin back to high
+GPIO.output(RESET_PIN,GPIO.HIGH)
 
 with open('mega_data.csv', 'w') as csvfile:
     fieldnames = ['acc1x', 'acc1y', 'acc1z', 'acc2x', 'acc2y', 'acc2z', 'acc3x', 'acc3y', 'acc3z', 'curr', 'volt']
@@ -23,17 +44,16 @@ with open('mega_data.csv', 'w') as csvfile:
     hasReplied = False
     while(not hasReplied):
         #1. send a handshake
-        print("Debug: Sending handshake")
+        logger.info('Sending handshake to arduino: {}'.format(HANDSHAKE_PKT))
         ser.write(HANDSHAKE_PKT)
         #2. wait for input then check
         time.sleep(1)
-        print("Debug: Waiting for handshake")
+        logger.info('Waiting for acknowledgement from arduino')
         bytesToRead = ser.inWaiting()
         response = ser.read(bytesToRead)
         #3. send an ACK if right
         if response == ACK_PKT:
-            print("Debug: Handshake received")
-            print()
+            logger.info('Acknowledgement received')
             hasReplied = True
             ser.write(ACK_PKT)
         else:
@@ -42,10 +62,12 @@ with open('mega_data.csv', 'w') as csvfile:
     #start timer
     startTime = time.time()
     endTime = time.time()
-    
+    logger.debug('start timer at: {}'.format(startTime))
+    logger.debug('endTime: {}'.format(endTime))
+
+    count = 0
     #wait for data
-    while True: #(endTime - startTime) < 1:
-         
+    while (endTime - startTime) < 1: #True :
         #1. wait until the entire packet arrives
         if (ser.inWaiting() >= 25) :
             
@@ -84,9 +106,13 @@ with open('mega_data.csv', 'w') as csvfile:
             #print('acc2: ', acc2x, acc2y, acc2z)
             #print('acc3: ', acc3x, acc3y, acc3z)
             #print('pow: ', curr, volt)
+            count = count + 1
+            logger.debug('count: {}'.format(count))
         #3. update timer
-        #endTime = time.time()
-        
+        endTime = time.time()
+    logger.debug('data collected: {}'.format(count))
+
 #All done
 ser.close()
+logger.info('Exiting {}'.format(__file__))
 sys.exit()

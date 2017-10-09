@@ -10,7 +10,7 @@ ACK_PKT = bytes.fromhex("DDCC")
 ERR_PKT = bytes.fromhex("DDFD")
 
 #instantiate serial
-ser = serial.Serial('COM3',57600)
+ser = serial.Serial('/dev/ttyAMA0',57600)
 ser.flushInput()
 #ser.open()
 
