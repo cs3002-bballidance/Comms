@@ -78,7 +78,7 @@ void setup() {
   digitalWrite(GYRO, HIGH);
 
   //setup serial
-  Serial.begin(57600);
+  Serial1.begin(57600);
   
   // initialize device
   setSensors(ACC1, SAMPLE_RATE);
@@ -221,23 +221,23 @@ static void A1Task(void* pvParameters)
         mpu.getAcceleration(&ax, &ay, &az);
 
         buffer[in] = (int)(((float)(ax-avgAcc1X)/ACCEL_SENSITIVITY)*GRAVITY);
-//        Serial.print("in(acc1x): ");
-//        Serial.println(buffer[in]);
+//        Serial1.print("in(acc1x): ");
+//        Serial1.println(buffer[in]);
         in =(in+1) % N;
 
         buffer[in] = (int)(((float)(ay-avgAcc1Y)/ACCEL_SENSITIVITY)*GRAVITY);
-//        Serial.print("in(acc1y): ");
-//        Serial.println(buffer[in]);
+//        Serial1.print("in(acc1y): ");
+//        Serial1.println(buffer[in]);
         in =(in+1) % N;
 
         buffer[in] = (int)(((float)(az-avgAcc1Z)/ACCEL_SENSITIVITY)*GRAVITY);
-//        Serial.print("in(acc1z): ");
-//        Serial.println(buffer[in]);
+//        Serial1.print("in(acc1z): ");
+//        Serial1.println(buffer[in]);
         in =(in+1) % N;
         itemsInBuffer += 3;
         xSemaphoreGive(xSemaphoreBuffer); //V(mutex);
       }else {
-        //Serial.println("A1: Failed to grab semaphores and start task!");
+        //Serial1.println("A1: Failed to grab semaphores and start task!");
       }
     } 
   }
@@ -257,23 +257,23 @@ static void A2Task(void* pvParameters)
         mpu.getAcceleration(&ax, &ay, &az);
 
         buffer[in] = (int)(((float)(ax-avgAcc2X)/ACCEL_SENSITIVITY)*GRAVITY);
-//        Serial.print("in(acc2x): ");
-//        Serial.println(buffer[in]);
+//        Serial1.print("in(acc2x): ");
+//        Serial1.println(buffer[in]);
         in =(in+1) % N;
 
         buffer[in] = (int)(((float)(ay-avgAcc2Y)/ACCEL_SENSITIVITY)*GRAVITY);
-//        Serial.print("in(acc2y): ");
-//        Serial.println(buffer[in]);
+//        Serial1.print("in(acc2y): ");
+//        Serial1.println(buffer[in]);
         in =(in+1) % N;
 
         buffer[in] = (int)(((float)(az-avgAcc2Z)/ACCEL_SENSITIVITY)*GRAVITY);
-//        Serial.print("in(acc2z): ");
-//        Serial.println(buffer[in]);
+//        Serial1.print("in(acc2z): ");
+//        Serial1.println(buffer[in]);
         in =(in+1) % N;
         itemsInBuffer += 3;
         xSemaphoreGive(xSemaphoreBuffer); //V(mutex);
       }else {
-        //Serial.println("A2: Failed to grab semaphores and start task!");
+        //Serial1.println("A2: Failed to grab semaphores and start task!");
       }
     }
   }
@@ -293,23 +293,23 @@ static void A3Task(void* pvParameters)
         mpu.getRotation(&gx, &gy, &gz);
 
         buffer[in] = (int)((float)gx/GYRO_SENSITIVITY);
-//        Serial.print("in(gyrox): ");
-//        Serial.println(buffer[in]);
+//        Serial1.print("in(gyrox): ");
+//        Serial1.println(buffer[in]);
         in =(in+1) % N;
 
         buffer[in] = (int)((float)gy/GYRO_SENSITIVITY);
-//        Serial.print("in(gyroy): ");
-//        Serial.println(buffer[in]);
+//        Serial1.print("in(gyroy): ");
+//        Serial1.println(buffer[in]);
         in =(in+1) % N;
 
         buffer[in] = (int)((float)gz/GYRO_SENSITIVITY);
-//        Serial.print("in(gyroz): ");
-//        Serial.println(buffer[in]);
+//        Serial1.print("in(gyroz): ");
+//        Serial1.println(buffer[in]);
         in =(in+1) % N;
         itemsInBuffer += 3;
         xSemaphoreGive(xSemaphoreBuffer); //V(mutex);
       } else {
-        //Serial.println("A3: Failed to grab semaphores and start task!");
+        //Serial1.println("A3: Failed to grab semaphores and start task!");
       }
     }
   }
@@ -344,18 +344,18 @@ static void PowTask(void* pvParameters)
         voltage = voltAvgVal * 1.4706;
         
         buffer[in] = (int)(current * 1000);
-//        Serial.print("in(A): ");
-//        Serial.println(buffer[in]);
+//        Serial1.print("in(A): ");
+//        Serial1.println(buffer[in]);
         in =(in+1) % N;
 
         buffer[in] = (int)(voltage*100);
-//        Serial.print("in(V): ");
-//        Serial.println(buffer[in]);
+//        Serial1.print("in(V): ");
+//        Serial1.println(buffer[in]);
         in =(in+1) % N;
         itemsInBuffer += 2;
         xSemaphoreGive(xSemaphoreBuffer); //V(mutex);
       }else {
-        //Serial.println("P: Failed to grab semaphores and start task!");
+        //Serial1.println("P: Failed to grab semaphores and start task!");
       }
     }
   }
@@ -370,23 +370,23 @@ static void CommTask(void* pvParameters)
       if((xSemaphoreTake(xSemaphoreBuffer, 0) == pdTRUE)){
         char i;
         //Start sending data
-        //Serial.println("Data:");
-        Serial.write(START_FLAG);
-        Serial.write(INBD_DATA);
+        //Serial1.println("Data:");
+        Serial1.write(START_FLAG);
+        Serial1.write(INBD_DATA);
 
         //generate checksum and send
         int checksum = getChecksum();
-        Serial.write(highByte(checksum));
-        Serial.write(lowByte(checksum));
+        Serial1.write(highByte(checksum));
+        Serial1.write(lowByte(checksum));
         
         bool isPacketSent = false;
         while(!isPacketSent){
           sendData(); //send data to Rpi
           
           byte ack[2];
-          while(!Serial.available()); //wait for reply
-          if(Serial.available()){
-            Serial.readBytes(ack, sizeof(ack));
+          while(!Serial1.available()); //wait for reply
+          if(Serial1.available()){
+            Serial1.readBytes(ack, sizeof(ack));
           }
           isPacketSent = buffersAreEqual(ack, DESCRIPTOR_ACK);
           
@@ -400,7 +400,7 @@ static void CommTask(void* pvParameters)
         xSemaphoreGive((xSemaphoreProducerA3));
         xSemaphoreGive((xSemaphoreProducerP));
       }else {
-        //Serial.println("C: Failed to grab semaphores and start task!");
+        //Serial1.println("C: Failed to grab semaphores and start task!");
       }
     }
   }
@@ -410,26 +410,26 @@ static void CommTask(void* pvParameters)
 bool startComms(){
   //wait for handshake
   byte handshake[2];
-  while(!Serial.available()); //wait
-  if(Serial.available()){
-    Serial.readBytes(handshake, sizeof(handshake));
+  while(!Serial1.available()); //wait
+  if(Serial1.available()){
+    Serial1.readBytes(handshake, sizeof(handshake));
   }
 
   if(buffersAreEqual(handshake, DESCRIPTOR_HANDSHAKE)){
-    Serial.write(START_FLAG);
-    Serial.write(CONT_COMMS);
+    Serial1.write(START_FLAG);
+    Serial1.write(CONT_COMMS);
 
     //wait for ACK
     byte ack[2];
-    while(!Serial.available());
-    if(Serial.available()){
-      Serial.readBytes(ack, sizeof(ack));
+    while(!Serial1.available());
+    if(Serial1.available()){
+      Serial1.readBytes(ack, sizeof(ack));
     }
     return buffersAreEqual(ack, DESCRIPTOR_ACK);
     
   } else {
-    Serial.write(START_FLAG);
-    Serial.write(ERR_FLAG);
+    Serial1.write(START_FLAG);
+    Serial1.write(ERR_FLAG);
     return false;
   }
 }
@@ -459,7 +459,7 @@ void sendData(){
    for(i=0; i<N; i++){ //unload all 11 vars
      int val = buffer[out];
      out = (out+1) % N;
-     Serial.write(highByte(val));
-     Serial.write(lowByte(val));
+     Serial1.write(highByte(val));
+     Serial1.write(lowByte(val));
    }
 }
