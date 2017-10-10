@@ -105,7 +105,7 @@ with open('mega_data.csv', 'w') as csvfile:
                                  'curr':  curr,
                                  'volt':  volt
                                  })
-            else 
+            else: 
                 ser.write(ERR_PKT)
                 
             #print('acc1: ', acc1x, acc1y, acc1z)
