@@ -71,13 +71,11 @@ with open('mega_data.csv', 'w') as csvfile:
         #1. wait until the entire packet arrives
         if (ser.inWaiting() >= 26) :
             
-            #TODO: checksum after integration
             packet_type = bytearray(ser.read(2))
-            checksum = bytearray(ser.read(2))
+            (checksum,) = struct.unpack(">h", bytearray(ser.read(2)))
             
             #2. read data and convert to appropriate values
             #>h big endian, signed int (2 bytes)
-            #<B big endian, unsigned int (1 byte)
             (acc1x,) = struct.unpack(">h", bytearray((ser.read(2))))
             (acc1y,) = struct.unpack(">h", bytearray((ser.read(2))))
             (acc1z,) = struct.unpack(">h", bytearray((ser.read(2))))
@@ -90,22 +88,31 @@ with open('mega_data.csv', 'w') as csvfile:
             (curr,) = struct.unpack(">h", bytearray((ser.read(2))))
             (volt,) = struct.unpack(">h", bytearray((ser.read(2))))
             
-            writer.writerow({'acc1x': acc1x,
-                             'acc1y': acc1y, 
-                             'acc1z': acc1z,
-                             'acc2x': acc2x,
-                             'acc2y': acc2y,
-                             'acc2z': acc2z,
-                             'acc3x': acc3x,
-                             'acc3y': acc3y,
-                             'acc3z': acc3z,
-                             'curr':  curr,
-                             'volt':  volt
-                             })
+            calcChecksum = acc1x ^ acc1y ^ acc1z ^ acc2x ^ acc2y ^ acc2z ^ acc3x ^ acc3y ^ acc3z ^ curr ^ volt
+            
+            if (checksum == calcChecksum) :
+                
+                ser.write(ACK_PKT)
+                writer.writerow({'acc1x': acc1x,
+                                 'acc1y': acc1y, 
+                                 'acc1z': acc1z,
+                                 'acc2x': acc2x,
+                                 'acc2y': acc2y,
+                                 'acc2z': acc2z,
+                                 'acc3x': acc3x,
+                                 'acc3y': acc3y,
+                                 'acc3z': acc3z,
+                                 'curr':  curr,
+                                 'volt':  volt
+                                 })
+            else 
+                ser.write(ERR_PKT)
+                
             #print('acc1: ', acc1x, acc1y, acc1z)
             #print('acc2: ', acc2x, acc2y, acc2z)
             #print('acc3: ', acc3x, acc3y, acc3z)
             #print('pow: ', curr, volt)
+            
             count = count + 1
             logger.debug('count: {}'.format(count))
         #3. update timer
