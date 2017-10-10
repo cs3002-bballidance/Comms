@@ -69,11 +69,11 @@ with open('mega_data.csv', 'w') as csvfile:
     #wait for data
     while (endTime - startTime) < 1: #True :
         #1. wait until the entire packet arrives
-        if (ser.inWaiting() >= 25) :
+        if (ser.inWaiting() >= 26) :
             
             #TODO: checksum after integration
             packet_type = bytearray(ser.read(2))
-            checksum = bytearray(ser.read(1))
+            checksum = bytearray(ser.read(2))
             
             #2. read data and convert to appropriate values
             #>h big endian, signed int (2 bytes)
