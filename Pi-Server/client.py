@@ -1,15 +1,20 @@
 from Crypto import Random
 from Crypto.Cipher import AES
+# ==================================================
+# To be added after integration with prediction.py
+# from prediction import results
+# ==================================================
 
 import base64
 import socket
 import sys
-#to be removed
+# ==================================================
+# To be removed after integration with prediction.py
 import random
 import time
+# ==================================================
 
 class client:
-
 	def __init__(self, ip_addr, port_num):
 		# Create TCP/IP socket
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -20,9 +25,26 @@ class client:
 		self.sock.connect(server_address)
 		print('Connected to %s port %s' % server_address, file=sys.stderr)
 			
-		# Obtain secret key
-		# TODO: Read and obtain secret_key elsewhere
-		secret_key = b'69p2E2EDdEZP0NDG'
+		# Obtain secret key from local key file
+		# TODO: Encode secret_key in key file then perform decode operations
+		with open('key') as key:
+			secret_key = key.read()
+			key.closed
+		
+		# ===================================================
+		# Uncomment this section for Raspberry Pi integration
+		# Obtain secret key from thumbdrive in Raspberry Pi
+		'''
+		secret_key = ' '
+		for root, dirs, files in os.walk('/media/pi'):
+			if 'key' in files:
+				if os.access(join(root, 'key'), os.R_OK):
+					with open(join(root, 'key')) as key:
+						secret_key = key.read()
+						key.closed
+						break
+		'''
+		# ===================================================
 
 		# List of actions available
 		self.actions = ['logout  ', 'wavehands', 'busdriver', 'frontback', 'sidestep', 'jumping',
@@ -32,18 +54,33 @@ class client:
 
 		# Send data until logout action is recieved
 		while action != 0:
-			#1. Get action from machine learning script -> SIMULATED
-			#action = input('Enter action (use \'logout  \' to exit): ');
+			#1. Get action, current and voltage from prediction.py
+			# TODO: Capture action, current and voltage from prediction.py
 			
+			# ====================================================
+			# Uncomment this section for Raspberry Pi integration
+			# Obtain action, current and voltage from prediction.py
+			# action = results
+			'''
+			# Uncomment this section if performing file reading
+			# TODO: Check if file has changed since previous results if not wait until new file exists
+			with open('send_server') as send_server:
+				predicted_results = send_server.read()
+				# TODO: predicted_results split into action, current and voltage
+				send_server.closed
+			'''	
+			# ====================================================
+			
+			# ===================================================
 			# Generates random data for testing purposes
 			# Expecting an integer for predicted action
 			time.sleep(5)
 			action = random.randrange(0, 10)
-			voltage = random.uniform(0, 5)
 			current = random.uniform(0, 3)
-			# TODO: Capture action, voltage and current from prediction.py
+			voltage = random.uniform(0, 5)
+			# ===================================================
 			
-			# Calculates average power since first reading
+			#1a. Calculates average power since first reading
 			power = voltage * current
 			voltage_str = str(round(voltage, 2))
 			current_str = str(round(current, 2))
@@ -52,7 +89,7 @@ class client:
 			#print("cumulativepower List : ", cumulativepower_list)
 			cumulativepower_list_avg = float(sum(cumulativepower_list) / len(cumulativepower_list))
 			
-			# Assemble message
+			#1b. Assemble message
 			msg = b'#' + b'|'.join([self.actions[action].encode(), voltage_str.encode(), current_str.encode(), power_str.encode(), str(round(cumulativepower_list_avg, 2)).encode()]) + b'|'
 			print('unencrypted msg: ', msg)
 
@@ -63,7 +100,7 @@ class client:
 			
 			#2b. Apply AES-CBC encryption
 			iv = Random.new().read(AES.block_size)
-			cipher = AES.new(secret_key, AES.MODE_CBC, iv)
+			cipher = AES.new(secret_key.encode(), AES.MODE_CBC, iv)
 			encodedMsg = base64.b64encode(iv + cipher.encrypt(msg))
 			print('encrypted msg:   ', encodedMsg)
 
