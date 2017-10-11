@@ -13,6 +13,7 @@ ACK_PKT = bytes.fromhex("DDCC")
 ERR_PKT = bytes.fromhex("DDFD")
 RESET_PIN = 17
 LOG_FILENAME = 'mega_pi.log'
+DURATION = 10
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',filename=LOG_FILENAME,level=logging.INFO)
@@ -32,7 +33,7 @@ ser = serial.Serial('/dev/ttyAMA0',57600)
 GPIO.output(RESET_PIN,GPIO.LOW)
 ser.flushInput() # flush any existing serial buffer
 logger.info('Resetting arduino before resuming')
-time.sleep(2) # sleep for 2 second before pulling the pin back to high
+time.sleep(1) # sleep for 1 second before pulling the pin back to high
 GPIO.output(RESET_PIN,GPIO.HIGH)
 
 with open('mega_data.csv', 'w') as csvfile:
@@ -44,7 +45,7 @@ with open('mega_data.csv', 'w') as csvfile:
     hasReplied = False
     while(not hasReplied):
         #1. send a handshake
-        logger.info('Sending handshake to arduino: {}'.format(HANDSHAKE_PKT))
+        logger.info('Sending handshake to arduino')
         ser.write(HANDSHAKE_PKT)
         #2. wait for input then check
         time.sleep(1)
@@ -62,15 +63,12 @@ with open('mega_data.csv', 'w') as csvfile:
     #start timer
     startTime = time.time()
     endTime = time.time()
-    logger.debug('start timer at: {}'.format(startTime))
-    logger.debug('endTime: {}'.format(endTime))
 
     count = 0
     #wait for data
-    while (endTime - startTime) < 1: #True :
+    while (endTime - startTime) < DURATION: #True :
         #1. wait until the entire packet arrives
         if (ser.inWaiting() >= 26) :
-            
             packet_type = bytearray(ser.read(2))
             (checksum,) = struct.unpack(">h", bytearray(ser.read(2)))
             
@@ -91,7 +89,6 @@ with open('mega_data.csv', 'w') as csvfile:
             calcChecksum = acc1x ^ acc1y ^ acc1z ^ acc2x ^ acc2y ^ acc2z ^ acc3x ^ acc3y ^ acc3z ^ curr ^ volt
             
             if (checksum == calcChecksum) :
-                
                 ser.write(ACK_PKT)
                 writer.writerow({'acc1x': acc1x,
                                  'acc1y': acc1y, 
@@ -106,17 +103,14 @@ with open('mega_data.csv', 'w') as csvfile:
                                  'volt':  volt
                                  })
             else: 
+                logger.warn('Packet error')
                 ser.write(ERR_PKT)
-                
-            #print('acc1: ', acc1x, acc1y, acc1z)
-            #print('acc2: ', acc2x, acc2y, acc2z)
-            #print('acc3: ', acc3x, acc3y, acc3z)
-            #print('pow: ', curr, volt)
-            
             count = count + 1
-            logger.debug('count: {}'.format(count))
         #3. update timer
         endTime = time.time()
+    logger.debug('startTime: {}'.format(startTime))
+    logger.debug('endTime: {}'.format(endTime))
+    logger.debug('duration: {} secs'.format(int(endTime - startTime)))
     logger.debug('data collected: {}'.format(count))
 
 #All done
