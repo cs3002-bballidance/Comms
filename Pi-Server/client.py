@@ -9,6 +9,7 @@ import random
 import time
 
 class client:
+
 	def __init__(self, ip_addr, port_num):
 		# Create TCP/IP socket
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
